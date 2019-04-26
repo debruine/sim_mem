@@ -84,7 +84,7 @@ agg_data %>%
 
 ### Analyse the data
 
-We'll use a paired-samples t-test to test if mean reaction times in the congruent condition are fater than those in the incongruent condition.
+We'll use a paired-samples t-test to test if mean reaction times in the congruent condition are faster than those in the incongruent condition.
 
 ```{r}
 t.test(rt~condition, agg_data, paired = TRUE)
@@ -267,9 +267,9 @@ agg_data$condition.e <- recode(agg_data$condition,
                                "incongruent" = 0.5)
 ```
 
-A mixed effects model is specified in this format: `dv ~ terms + (1 | id)`, where `dv` is the value to be predicted, `terms` are the predictor variables, `1` representes the random intercept, and `id` is the grouping variable. Our formula is `rt ~ condition.e + (1 | sub_id)`.
+A mixed effects model is specified in this format: `dv ~ terms + (1 | id)`, where `dv` is the value to be predicted, `terms` are the predictor variables, `1` represents the random intercept, and `id` is the grouping variable. Our formula is `rt ~ condition.e + (1 | sub_id)`.
 
-```{r, results='asis'}
+```{r}
 lmem <- lmer(rt ~ condition.e + (1 | sub_id), data = agg_data)
 summary(lmem)
 ```

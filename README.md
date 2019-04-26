@@ -75,7 +75,7 @@ agg_data %>%
 
 ### Analyse the data
 
-We'll use a paired-samples t-test to test if mean reaction times in the congruent condition are fater than those in the incongruent condition.
+We'll use a paired-samples t-test to test if mean reaction times in the congruent condition are faster than those in the incongruent condition.
 
 ``` r
 t.test(rt~condition, agg_data, paired = TRUE)
@@ -276,27 +276,40 @@ agg_data$condition.e <- recode(agg_data$condition,
                                "incongruent" = 0.5)
 ```
 
-A mixed effects model is specified in this format: `dv ~ terms + (1 | id)`, where `dv` is the value to be predicted, `terms` are the predictor variables, `1` representes the random intercept, and `id` is the grouping variable. Our formula is `rt ~ condition.e + (1 | sub_id)`.
+A mixed effects model is specified in this format: `dv ~ terms + (1 | id)`, where `dv` is the value to be predicted, `terms` are the predictor variables, `1` represents the random intercept, and `id` is the grouping variable. Our formula is `rt ~ condition.e + (1 | sub_id)`.
 
 ``` r
 lmem <- lmer(rt ~ condition.e + (1 | sub_id), data = agg_data)
 summary(lmem)
 ```
 
-Linear mixed model fit by REML. t-tests use Satterthwaite's method \[ lmerModLmerTest\] Formula: rt ~ condition.e + (1 | sub\_id) Data: agg\_data
-
-REML criterion at convergence: 2179.3
-
-Scaled residuals: Min 1Q Median 3Q Max -1.9666 -0.5831 -0.0398 0.4517 3.4934
-
-Random effects: Groups Name Variance Std.Dev. sub\_id (Intercept) 10016 100.08
-Residual 8265 90.91
-Number of obs: 176, groups: sub\_id, 88
-
-Fixed effects: Estimate Std. Error df t value Pr(&gt;|t|)
-(Intercept) 723.09 12.68 87.00 57.027 &lt; 2e-16 *** condition.e 106.30 13.71 87.00 7.756 1.55e-11 *** --- Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-
-Correlation of Fixed Effects: (Intr) condition.e 0.000
+    ## Linear mixed model fit by REML. t-tests use Satterthwaite's method [
+    ## lmerModLmerTest]
+    ## Formula: rt ~ condition.e + (1 | sub_id)
+    ##    Data: agg_data
+    ## 
+    ## REML criterion at convergence: 2179.3
+    ## 
+    ## Scaled residuals: 
+    ##     Min      1Q  Median      3Q     Max 
+    ## -1.9666 -0.5831 -0.0398  0.4517  3.4934 
+    ## 
+    ## Random effects:
+    ##  Groups   Name        Variance Std.Dev.
+    ##  sub_id   (Intercept) 10016    100.08  
+    ##  Residual              8265     90.91  
+    ## Number of obs: 176, groups:  sub_id, 88
+    ## 
+    ## Fixed effects:
+    ##             Estimate Std. Error     df t value Pr(>|t|)    
+    ## (Intercept)   723.09      12.68  87.00  57.027  < 2e-16 ***
+    ## condition.e   106.30      13.71  87.00   7.756 1.55e-11 ***
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## Correlation of Fixed Effects:
+    ##             (Intr)
+    ## condition.e 0.000
 
 First we'll focus on the fixed effects. Note how the t-values and p-values correspond to the t-test and ANOVA. Also note how the estimate for the effect of condition corresponds to the mean difference calculated in the t-test. The estimate for the intercept corresponds to the overall mean reaction time.
 

@@ -2,28 +2,28 @@ library(dplyr)
 
 stim_desc <- tribble(
   ~stim_id             , ~stim_type, ~stim_sex,
-  "_bf_aliciakeys"     , "person", "female",
-  "_bf_serenawilliams" , "person", "female",
-  "_bm_neyo"           , "person", "male",  
-  "_bm_nickcannon"     , "person", "male", 
-  "_wf_jessicabiel"    , "person", "female",  
-  "_wf_jessicasimpson" , "person", "female",
-  "_wm_mattdamon"      , "person", "male", 
-  "_wm_nicklachey"     , "person", "male", 
-  "Count"              , "object", "male", 
-  "Decimal"            , "object", "male",
-  "Divide"             , "object", "male",
-  "Essay"              , "object", "female",
-  "Fraction"           , "object", "male",
-  "Literature"         , "object", "female",
-  "Math"               , "object", "male",
-  "Multiply"           , "object", "male",
-  "Number"             , "object", "male",
-  "Paragraph"          , "object", "female",
-  "Poetry"             , "object", "female",
-  "Sentence"           , "object", "female",
-  "Spelling"           , "object", "female",
-  "Vocabulary"         , "object", "female"
+  "_bf_aliciakeys"     , "face", "female",
+  "_bf_serenawilliams" , "face", "female",
+  "_bm_neyo"           , "face", "male",  
+  "_bm_nickcannon"     , "face", "male", 
+  "_wf_jessicabiel"    , "face", "female",  
+  "_wf_jessicasimpson" , "face", "female",
+  "_wm_mattdamon"      , "face", "male", 
+  "_wm_nicklachey"     , "face", "male", 
+  "Count"              , "word", "male", 
+  "Decimal"            , "word", "male",
+  "Divide"             , "word", "male",
+  "Essay"              , "word", "female",
+  "Fraction"           , "word", "male",
+  "Literature"         , "word", "female",
+  "Math"               , "word", "male",
+  "Multiply"           , "word", "male",
+  "Number"             , "word", "male",
+  "Paragraph"          , "word", "female",
+  "Poetry"             , "word", "female",
+  "Sentence"           , "word", "female",
+  "Spelling"           , "word", "female",
+  "Vocabulary"         , "word", "female"
 )
 
 iat_data <- IAT::IATData %>%
@@ -48,7 +48,7 @@ iat_data <- IAT::IATData %>%
   mutate(
     condition.e = recode(condition, "incongruent" = 0.5, "congruent" = -0.5),
     stim_sex.e = recode(stim_sex, "male" = 0.5, "female" = -0.5),
-    stim_type.e = recode(stim_type, "object" = 0.5, "person" = -0.5)
+    stim_type.e = recode(stim_type, "word" = 0.5, "face" = -0.5)
   ) %>%
   filter(rt > mean(rt) - 2*sd(rt),
          rt < mean(rt) + 2*sd(rt))

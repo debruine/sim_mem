@@ -40,7 +40,7 @@ In this tutorial we will simulate data from an [Implicit Association Task](https
 
 ### Load the data
 
-We're going to use the `IATData` dataset from the IAT package. We have to do a bit of processing to filter, simplify, and recode this dataset; the code for that is at [github](https://github.com/debruine/sim_mem/blob/master/R/data_prep.R), but you can get the dataset using the code below.
+We're going to use the `IATData` dataset from the IAT package to figure out some realistic values for our variables. We have to do a bit of processing to filter, simplify, and recode this dataset; the code for that is at [github](https://github.com/debruine/sim_mem/blob/master/R/data_prep.R), but you can get the dataset using the code below.
 
 ```{r, message=FALSE}
 
@@ -48,7 +48,7 @@ iat_data <- readr::read_csv("iat_data.csv")
 #iat_data <- readr::read_csv("https://raw.githubusercontent.com/debruine/sim_mem/master/iat_data.csv")
 ```
 
-The dataset has the following columns:
+The dataset has `r nrow(iat_data)` rows, each representing a single trial, with the following columns:
 
 * `sub_id`: The subject ID
 * `stim_id`: The name of the stimulus
@@ -68,8 +68,6 @@ agg_data <- iat_data %>%
   ungroup()
 ```
 
-
-### Graph the pilot data
 
 The first step to understanding a new dataset is to plot it. 
 
@@ -92,7 +90,7 @@ t.test(rt~condition, agg_data, paired = TRUE)
 
 ### Simulate the data
 
-First we put the data into wide format so there is one column for each cell. 
+We're going to use this data to get some realistic values to describe the variables. First we put the data into wide format so there is one column for each cell. 
 
 ```{r}
 vars <- agg_data %>%
@@ -109,11 +107,11 @@ faux::check_sim_stats(vars, digits = 2, usekable = TRUE)
 
 ```{r}
 sub_n <- nrow(vars)
-m1 <- mean(vars$congruent)
-m2 <- mean(vars$incongruent)
-sd1 <- sd(vars$congruent)
-sd2 <- sd(vars$incongruent)
-r <- cor(vars$congruent, vars$incongruent)
+m1    <- mean(vars$congruent)
+m2    <- mean(vars$incongruent)
+sd1   <- sd(vars$congruent)
+sd2   <- sd(vars$incongruent)
+r     <- cor(vars$congruent, vars$incongruent)
 ```
 
 You can use the `rnorm_multi()` function from faux to simulate normally-distributed within-subject variables with specified means, SDs and correlations.
@@ -179,7 +177,8 @@ sim_iat <- function(sub_n, m1, m2, sd1, sd2, r) {
   mutate(sub_id = 1:sub_n) %>%
   gather(condition, rt, congruent:incongruent)
   
-  t.test(rt~condition, data, paired = TRUE) %>% tidy()
+  t.test(rt~condition, data, paired = TRUE) %>% 
+    tidy()
 }
 ```
 
@@ -196,7 +195,7 @@ power <- mean(sim$p.value < alpha)
 ```
 
 
-```{r, echo = FALSE, fig.width = 4, fig.height = 2.5}
+```{r, echo = FALSE, fig.width = 8, fig.height = 5}
 ggplot(sim) + 
   geom_density(aes(estimate), fill = "grey", alpha = .5) +
   geom_vline(xintercept = mean(sim$estimate), color = "red", size = 1.5) +
@@ -205,11 +204,10 @@ ggplot(sim) +
   ggtitle(paste("mean estimate = ", round(mean(sim$estimate), 2)))
 ```
 
-```{r, echo = FALSE, fig.width = 4, fig.height = 2.5}
+```{r, echo = FALSE, fig.width = 8, fig.height = 5}
 ggplot(sim) + 
   geom_vline(xintercept = alpha, color = "red") +
   geom_density(aes(p.value)) + 
-  xlim(0,1) +
   ggtitle(paste("power = ", power))
 ```
 
@@ -247,20 +245,10 @@ afex::aov_ez(
 ```
 
 
-### LMEM
-
-### Terminology (derived from broom_mixed)
-
-* *terms*: the categorical or continuous predictor variables
-* *fixed effects*: the parameters that describe the population-level effects of predictor variables
-* *random-effect parameters*: the upper-level parameters that describe the distribution of random variables (variance, covariance, precision, standard deviation, or correlation)
-* *random-effect values*: the values that describe the deviation of the observations in a group level from the population-level effect
-* *grouping variable*: the categorical variable (factor) that identifies which group or cluster an observation belongs to
-* *group level* the particular level of a factor that specifies which level of the grouping variable an observation belongs to
-
-
+## LMEM
 
 We need to *effect code* condition to match the behaviour of ANOVA. We set the congruent condition to -0.5 and the incongruent condition to +0.5 because we predict lower reaction times for the congruent condition.
+
 ```{r}
 agg_data$condition.e <- recode(agg_data$condition, 
                                "congruent" = -0.5, 
@@ -271,17 +259,54 @@ A mixed effects model is specified in this format: `dv ~ terms + (1 | id)`, wher
 
 ```{r}
 lmem <- lmer(rt ~ condition.e + (1 | sub_id), data = agg_data)
+```
+
+The `summary()` function is often used to inspect the results.
+
+```{r}
 summary(lmem)
 ```
 
-First we'll focus on the fixed effects. Note how the t-values and p-values correspond to the t-test and ANOVA. Also note how the estimate for the effect of condition corresponds to the mean difference calculated in the t-test. The estimate for the intercept corresponds to the overall mean reaction time.
+You can also use the `broom.mixed::tidy()` function to show a condensed version of the results.
 
-Now we can look at the random effects. You can calculate the proportion of total variance explained by subject-specific intercepts as subject variance divided by total variance. This value ((`r round(10016/(10016 + 8265), 3)`)) is approximately equal to the correlation between the congruent and incongruent conditions (`r round(r, 3)`).
+```{r, eval = FALSE}
+tidy(lmem)
+```
+
+```{r, echo = FALSE, results='asis'}
+tidy(lmem) %>% kable(digits = 3)
+```
+
+First focus on the fixed effects. Note how the t-values and p-values correspond to the t-test and ANOVA. Also note how the estimate for the effect of condition corresponds to the mean difference calculated in the t-test. The estimate for the intercept corresponds to the overall mean reaction time.
+
+Next look at the random effects. You can calculate the proportion of total variance explained by subject-specific intercepts as subject variance divided by total variance. This value (`r round(10016/(10016 + 8265), 3)`) is approximately equal to the correlation between the congruent and incongruent conditions (`r round(r, 3)`).
 
 
 ## Simulating Data for LMEM
 
 The data simulation process for a mixed effect model uses the random effect standard deviations and the fixed effect estimates.
+
+### Calculate parameters from data statistics
+
+```{r}
+# you can calculate pooled variance in two ways, 
+# depending on what info you have access to
+var <- (sd1^2 + sd2^2)/2
+var <- sd(vars$incongruent - vars$congruent)^2
+
+grand_i  <- (m1 + m2)/2
+cond_eff <- m2 - m1
+sub_sd   <- sqrt(var * r)
+err_sd   <- sqrt(var * (1-r))
+```
+
+| Parameter  | Value        |
+|------------|-------------:|
+| `grand_i`  | `r round(grand_i,3)`  |
+| `cond_eff` | `r round(cond_eff,3)` |
+| `sub_sd`   | `r round(sub_sd,3)`   |
+| `err_sd`   | `r round(err_sd,3)`   |
+
 
 ### Get parameters from LMEM
 
@@ -295,17 +320,24 @@ params <- broom.mixed::tidy(lmem)
 
 Here, we need the grand intercept (`grand_i`), the effect of condition (`cond_eff`), the standard deviation for subject random intercepts (`sub_sd`) and the standard deviation for the residual, or error, variance (`err_sd`)
 ```{r}
-
-grand_i <- filter(params, effect == "fixed", term == "(Intercept)") %>% pull(estimate)
-cond_eff <- filter(params, effect == "fixed", term == "condition.e") %>% pull(estimate)
-sub_sd <- filter(params, effect == "ran_pars", group == "sub_id") %>% pull(estimate)
-err_sd <- filter(params, effect == "ran_pars", group == "Residual") %>% pull(estimate)
+grand_i  <- filter(params, term == "(Intercept)") %>% pull(estimate)
+cond_eff <- filter(params, term == "condition.e") %>% pull(estimate)
+sub_sd   <- filter(params, group == "sub_id")     %>% pull(estimate)
+err_sd   <- filter(params, group == "Residual")   %>% pull(estimate)
 ```
+
+| Parameter  | Value        |
+|------------|-------------:|
+| `grand_i`  | `r round(grand_i,3)`  |
+| `cond_eff` | `r round(cond_eff,3)` |
+| `sub_sd`   | `r round(sub_sd,3)`   |
+| `err_sd`   | `r round(err_sd,3)`   |
+
+### Simulate subjects
 
 Simulate 100 new subjects who have random intercepts with the same standard deviation as the subjects in your pilot data.
 
 ```{r}
-
 sub_n <- 100
 
 sub <- tibble(
@@ -313,6 +345,9 @@ sub <- tibble(
   sub_i = rnorm(sub_n, 0, sub_sd)
 )
 ```
+
+
+### Simulate trials
 
 Create a data table of each trial by crossing the subject IDs with each within-subject condition using `expand.grid()`. This function creates every possible combination of the factors you specify.
 
@@ -322,6 +357,8 @@ trials <- expand.grid(
   condition = c("congruent", "incongruent")
 )
 ```
+
+### Simulate the DV
 
 Simulate your data by starting with the trial table, joining in the `sub` table to include each subject's random intercept, effect-coding condition, calculating the error term using the random effects standard deviation for the residual defined above, and calculating the reaction time by adding together the grand intercept (defined above by the intercept fixed effect estimate), the subject-specific intercept, the effect of condition multiplied by the condition effect-code, and the error term.
 
@@ -335,21 +372,24 @@ sim_data <- trials %>%
   )
 ```
 
-Run a mixed-effect model on your simulated data. The `summary()` function is often used to inspect the results.
+### Analysis
 
-```{r}
-lmer(rt ~ condition.e + (1 | sub_id), data = sim_data) %>%
-  summary()
+Run a mixed-effect model on your simulated data and use `tidy()` to output a condensed version of the results. 
+
+```{r, eval = FALSE}
+lmer(rt ~ condition.e + (1 | sub_id), data = sim_data) %>% tidy()
 ```
 
-### Function
+```{r, echo = FALSE, results='asis'}
+lmer(rt ~ condition.e + (1 | sub_id), data = sim_data) %>% 
+  tidy() %>% 
+  kable(digits = 3)
+```
 
 You can wrap this in a function, as well.
 
 ```{r}
-sim_iat_lme <- function(sub_n = 100, grand_i = 0, 
-                        cond_eff = 0, 
-                        sub_sd = 1, err_sd = 1) {
+sim_iat_lme <- function(sub_n, grand_i, cond_eff, sub_sd, err_sd) {
   sub <- tibble(
     sub_id = 1:sub_n,
     sub_i = rnorm(sub_n, 0, sub_sd)
@@ -371,7 +411,29 @@ sim_iat_lme <- function(sub_n = 100, grand_i = 0,
 
 ```
 
+Run this function with different parameters to see how they change the estimates.
+
+```{r, eval = FALSE}
+sim_iat_lme(sub_n = 100, grand_i = 500, cond_eff = 50, sub_sd = 100, err_sd = 100)
+```
+
+```{r, echo = FALSE, resul='asis'}
+sim_iat_lme(sub_n = 100, grand_i = 500, cond_eff = 50, sub_sd = 100, err_sd = 100) %>%
+  kable(digits = 3)
+```
+
+```{r, eval = FALSE}
+sim_iat_lme(sub_n = 50, grand_i = 300, cond_eff = 50, sub_sd = 200, err_sd = 75)
+```
+
+```{r, echo = FALSE, results='asis'}
+sim_iat_lme(sub_n = 50, grand_i = 300, cond_eff = 50, sub_sd = 200, err_sd = 75) %>%
+  kable(digits = 3)
+```
+
 ### Power calculation
+
+We can run the power simulation the same way as before. However, this time we get four rows back for each simulation, so we need to filter for `term == "condition.e"` to get the p-value for the effect of condition.
 
 ```{r}
 
@@ -385,11 +447,10 @@ p <- sim %>%
 power <- mean(p < alpha)
 ```
 
-```{r, echo = FALSE, fig.width = 4, fig.height = 2.5}
+```{r, echo = FALSE, fig.width = 8, fig.height = 5}
 ggplot() + 
   geom_vline(xintercept = alpha, color = "red") +
   geom_density(aes(p)) + 
-  xlim(0,1) +
   ggtitle(paste("power = ", power))
 
 ```
@@ -415,11 +476,11 @@ summary(pilot_mod)
 ```{r}
 params <- broom.mixed::tidy(pilot_mod)
 
-grand_i <- filter(params, effect == "fixed", term == "(Intercept)") %>% pull(estimate)
-cond_eff <- filter(params, effect == "fixed", term == "condition.e") %>% pull(estimate)
+grand_i <- filter(params, term == "(Intercept)") %>% pull(estimate)
+cond_eff <- filter(params, term == "condition.e") %>% pull(estimate)
 sub_sd <- filter(params, group == "sub_id", term == "sd__(Intercept)") %>% pull(estimate)
 stim_sd <- filter(params, group == "stim_id", term == "sd__(Intercept)") %>% pull(estimate)
-err_sd <- filter(params, effect == "ran_pars", group == "Residual") %>% pull(estimate)
+err_sd <- filter(params, group == "Residual") %>% pull(estimate)
 
 ```
 
@@ -485,9 +546,20 @@ sim_dat_lmem <- expand.grid(
 
 ```{r}
 sim_mod <- lmer(rt ~ condition.e +
-              (1 + condition.e | sub_id) + 
+              (1 | sub_id) + 
               (1 | stim_id), 
             data = sim_dat_lmem)
 
 summary(sim_mod)
 ```
+
+## Terminology 
+
+(derived from broom_mixed)
+
+* *terms*: the categorical or continuous predictor variables
+* *fixed effects*: the parameters that describe the population-level effects of predictor variables
+* *random-effect parameters*: the upper-level parameters that describe the distribution of random variables (variance, covariance, precision, standard deviation, or correlation)
+* *random-effect values*: the values that describe the deviation of the observations in a group level from the population-level effect
+* *grouping variable*: the categorical variable (factor) that identifies which group or cluster an observation belongs to
+* *group level* the particular level of a factor that specifies which level of the grouping variable an observation belongs to

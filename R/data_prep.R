@@ -26,15 +26,21 @@ stim_desc <- tribble(
   "Vocabulary"         , "word", "female"
 )
 
+blocks <- c("Math/Male,Language Arts/Female", 
+            "Language Arts/Male,Math/Female"),
+            "Math/Female,Language Arts/Male",
+            "Language Arts/Female,Math/Male")
+
 iat_data <- IAT::IATData %>%
   filter(TRIAL_ERROR == 0, ATTEMPT == 1) %>%
-  filter(BLOCK_PAIRING_DEFINITION_S %in% c("Math/Male,Language Arts/Female", 
-                                           "Language Arts/Male,Math/Female")) %>%
+  filter(BLOCK_PAIRING_DEFINITION_S %in% blocks) %>%
   mutate(
     condition = recode(
       BLOCK_PAIRING_DEFINITION_S, 
       "Math/Male,Language Arts/Female" = "congruent",
-      "Language Arts/Male,Math/Female" = "incongruent"
+      "Language Arts/Male,Math/Female" = "incongruent",
+      "Math/Female,Language Arts/Male" = "incongruent",
+      "Language Arts/Female,Math/Male" = "congruent"
     ),
     TRIAL_NAME_S = gsub("(fpi|\\.jpg)", "", TRIAL_NAME_S)
   ) %>%

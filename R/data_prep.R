@@ -45,11 +45,6 @@ iat_data <- IAT::IATData %>%
     rt = TRIAL_LATENCY
   ) %>%
   left_join(stim_desc, by = "stim_id") %>%
-  mutate(
-    condition.e = recode(condition, "incongruent" = 0.5, "congruent" = -0.5),
-    stim_sex.e = recode(stim_sex, "male" = 0.5, "female" = -0.5),
-    stim_type.e = recode(stim_type, "word" = 0.5, "face" = -0.5)
-  ) %>%
   filter(rt > mean(rt) - 2*sd(rt),
          rt < mean(rt) + 2*sd(rt))
 

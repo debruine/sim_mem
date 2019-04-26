@@ -580,7 +580,7 @@ sub <- tibble(
 )
 ```
 
-### Get the stimuli
+### Get the exact stimuli
 
 ``` r
 stim_desc <-  iat_data %>%
@@ -611,6 +611,19 @@ ggplot(stim, aes(stim_i, color = stim_type)) +
 
 ![](README_files/figure-markdown_github/unnamed-chunk-43-1.png)
 
+### Or simulate new stimuli
+
+Let's imagine we fixed this difference with new stimuli.
+
+``` r
+stim_n <- 20
+
+stim <- tibble(
+  stim_id = 1:stim_n,
+  stim_i = rnorm(stim_n, 0, stim_sd)
+)
+```
+
 ### Simulate data
 
 ``` r
@@ -623,53 +636,101 @@ sim_dat_lmem <- expand.grid(
   left_join(stim, by = "stim_id") %>%
   mutate(
     condition.e = recode(condition, "incongruent" = 0.5, "congruent" = -0.5),
-    stim_sex.e = recode(stim_sex, "male" = 0.5, "female" = -0.5),
-    stim_type.e = recode(stim_type, "word" = 0.5, "face" = -0.5),
     error = rnorm(nrow(.), 0, err_sd),
     rt = grand_i + sub_i + stim_i + (cond_eff * condition.e) + error
   )
 ```
 
-    ## Warning: Column `stim_id` joining factor and character vector, coercing
-    ## into character vector
-
 ``` r
-sim_mod <- lmer(rt ~ condition.e +
+lmer(rt ~ condition.e +
               (1 | sub_id) + 
               (1 | stim_id), 
-            data = sim_dat_lmem)
-
-summary(sim_mod)
+            data = sim_dat_lmem) %>%
+  tidy()
 ```
 
-    ## Linear mixed model fit by REML. t-tests use Satterthwaite's method [
-    ## lmerModLmerTest]
-    ## Formula: rt ~ condition.e + (1 | sub_id) + (1 | stim_id)
-    ##    Data: sim_dat_lmem
-    ## 
-    ## REML criterion at convergence: 60957.7
-    ## 
-    ## Scaled residuals: 
-    ##     Min      1Q  Median      3Q     Max 
-    ## -4.2603 -0.6387  0.0015  0.6564  3.5364 
-    ## 
-    ## Random effects:
-    ##  Groups   Name        Variance Std.Dev.
-    ##  sub_id   (Intercept) 15784    125.63  
-    ##  stim_id  (Intercept)  2404     49.03  
-    ##  Residual             56963    238.67  
-    ## Number of obs: 4400, groups:  sub_id, 100; stim_id, 22
-    ## 
-    ## Fixed effects:
-    ##             Estimate Std. Error       df t value Pr(>|t|)    
-    ## (Intercept)  730.006     16.734   77.974   43.62   <2e-16 ***
-    ## condition.e  102.244      7.196 4278.000   14.21   <2e-16 ***
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-    ## 
-    ## Correlation of Fixed Effects:
-    ##             (Intr)
-    ## condition.e 0.000
+    ## # A tibble: 5 x 8
+    ##   effect   group  term        estimate std.error statistic     df   p.value
+    ##   <chr>    <chr>  <chr>          <dbl>     <dbl>     <dbl>  <dbl>     <dbl>
+    ## 1 fixed    <NA>   (Intercept)    726.      16.2       44.7   57.0  4.79e-46
+    ## 2 fixed    <NA>   condition.e     98.7      7.57      13.0 3880.   4.50e-38
+    ## 3 ran_pars sub_id sd__(Inter…    111.      NA         NA     NA   NA       
+    ## 4 ran_pars stim_… sd__(Inter…     50.1     NA         NA     NA   NA       
+    ## 5 ran_pars Resid… sd__Observ…    239.      NA         NA     NA   NA
+
+### Function
+
+``` r
+sim_func <- function(sub_n, stim_n, grand_i, cond_eff, sub_sd, stim_sd, err_sd) {
+  sub <- tibble(
+    sub_id = 1:sub_n,
+    sub_i = rnorm(sub_n, 0, sub_sd)
+  )
+  
+  stim <- tibble(
+    stim_id = 1:stim_n,
+    stim_i = rnorm(stim_n, 0, stim_sd)
+  )
+  
+  sim_dat_lmem <- expand.grid(
+    sub_id = sub$sub_id,
+    stim_id = stim$stim_id,
+    condition = c("congruent", "incongruent")
+  ) %>%
+    left_join(sub, by = "sub_id") %>%
+    left_join(stim, by = "stim_id") %>%
+    mutate(
+      condition.e = recode(condition, "incongruent" = 0.5, "congruent" = -0.5),
+      error = rnorm(nrow(.), 0, err_sd),
+      rt = grand_i + sub_i + stim_i + (cond_eff * condition.e) + error
+    )
+  
+  lmer(rt ~ condition.e +
+              (1 | sub_id) + 
+              (1 | stim_id), 
+            data = sim_dat_lmem) %>%
+  tidy()
+}
+```
+
+``` r
+sim_func(100, 20, 500, 100, 100, 100, 100)
+```
+
+    ## # A tibble: 5 x 8
+    ##   effect   group  term       estimate std.error statistic     df    p.value
+    ##   <chr>    <chr>  <chr>         <dbl>     <dbl>     <dbl>  <dbl>      <dbl>
+    ## 1 fixed    <NA>   (Intercep…    468.      21.1       22.2   31.3  9.67e- 21
+    ## 2 fixed    <NA>   condition…     96.4      3.21      30.0 3880.   2.21e-178
+    ## 3 ran_pars sub_id sd__(Inte…    100.      NA         NA     NA   NA        
+    ## 4 ran_pars stim_… sd__(Inte…     82.4     NA         NA     NA   NA        
+    ## 5 ran_pars Resid… sd__Obser…    102.      NA         NA     NA   NA
+
+Simulate a null effect
+
+``` r
+sim <- purrr::map_df(1:100, ~sim_func(sub_n=100, stim_n=20, grand_i, 
+                                      cond_eff=0, sub_sd, stim_sd, err_sd))
+```
+
+    ## Warning in checkConv(attr(opt, "derivs"), opt$par, ctrl =
+    ## control$checkConv, : Model failed to converge with max|grad| = 0.00216653
+    ## (tol = 0.002, component 1)
+
+    ## Warning in checkConv(attr(opt, "derivs"), opt$par, ctrl =
+    ## control$checkConv, : Model failed to converge with max|grad| = 0.00719514
+    ## (tol = 0.002, component 1)
+
+``` r
+alpha <- 0.01
+p <- sim %>%
+  filter(term == "condition.e") %>%
+  pull(p.value) 
+
+power <- mean(p < alpha)
+```
+
+![](README_files/figure-markdown_github/unnamed-chunk-50-1.png)
 
 Terminology
 -----------
